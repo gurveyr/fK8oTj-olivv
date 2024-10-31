@@ -1,0 +1,164 @@
+enum UserStatus {
+    INVITED
+    VERIFIED
+}
+
+model User {
+    id               String            @id @default(uuid())
+    name             String?
+    email            String?           @unique
+    pictureUrl       String?           @default('https://i.imgur.com/ZdJSK3Y.jpeg')
+    tokenInvitation  String?
+
+    status           UserStatus        @default(VERIFIED)
+
+    // this is the role of the user for the application
+    globalRole       String            @default('USER')
+    password         String?           @password @omit
+    createdAt        DateTime          @default(now())
+    updatedAt        DateTime          @updatedAt @default(now())
+
+    pwaSubscriptions PwaSubscription[] @relation("user")
+
+    discussions      Discussion[]      @relation("user")
+    messages         Message[]         @relation("user")
+    participants     Participant[]     @relation("user")
+    feedbacks        Feedback[]        @relation("user")
+
+    @@auth()
+    @@allow("all", auth().id == this.id)
+    @@allow('all', auth().globalRole == 'ADMIN')
+
+    //we only allow that user to register if they don't create an admin role
+    @@allow("create", globalRole != 'ADMIN')
+    @@allow("read", true)
+}
+
+model Category {
+
+    id           String        @id @default(uuid())
+    name         String?
+    description  String?
+
+    subcategorys Subcategory[] @relation("category")
+    createdAt    DateTime      @default(now())
+    updatedAt    DateTime      @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model Subcategory {
+
+    id          String    @id @default(uuid())
+    name        String?
+    description String?
+
+    categoryId  String
+    category    Category? @relation(fields: [categoryId], references: [id], name: "category")
+
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model RoleData {
+
+    id           String        @id @default(uuid())
+    name         String?
+    description  String?
+
+    participants Participant[] @relation("role")
+    createdAt    DateTime      @default(now())
+    updatedAt    DateTime      @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model Discussion {
+
+    id           String        @id @default(uuid())
+    title        String?
+
+    userId       String
+    user         User?         @relation(fields: [userId], references: [id], name: "user")
+
+    messages     Message[]     @relation("discussion")
+    participants Participant[] @relation("discussion")
+    feedbacks    Feedback[]    @relation("discussion")
+    agreements   Agreement[]   @relation("discussion")
+    createdAt    DateTime      @default(now())
+    updatedAt    DateTime      @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model Message {
+
+    id           String      @id @default(uuid())
+    content      String?
+
+    userId       String
+    user         User?       @relation(fields: [userId], references: [id], name: "user")
+    discussionId String
+    discussion   Discussion? @relation(fields: [discussionId], references: [id], name: "discussion")
+
+    createdAt    DateTime    @default(now())
+    updatedAt    DateTime    @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model Participant {
+
+    id           String      @id @default(uuid())
+
+    userId       String
+    user         User?       @relation(fields: [userId], references: [id], name: "user")
+    discussionId String
+    discussion   Discussion? @relation(fields: [discussionId], references: [id], name: "discussion")
+    roleId       String
+    role         RoleData?   @relation(fields: [roleId], references: [id], name: "role")
+
+    createdAt    DateTime    @default(now())
+    updatedAt    DateTime    @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model Feedback {
+
+    id           String      @id @default(uuid())
+    content      String?
+    rating       Float?
+
+    userId       String
+    user         User?       @relation(fields: [userId], references: [id], name: "user")
+    discussionId String
+    discussion   Discussion? @relation(fields: [discussionId], references: [id], name: "discussion")
+
+    createdAt    DateTime    @default(now())
+    updatedAt    DateTime    @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model Agreement {
+
+    id           String      @id @default(uuid())
+    content      String?
+    status       String?
+
+    discussionId String
+    discussion   Discussion? @relation(fields: [discussionId], references: [id], name: "discussion")
+
+    createdAt    DateTime    @default(now())
+    updatedAt    DateTime    @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model PwaSubscription {
+    id        String   @id @default(uuid())
+    content   String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt @default(now())
+
+    userId    String   @default(auth().id)
+    user      User     @relation(fields: [userId], references: [id], name: 'user')
+
+    @@allow("all", true)
+}
+
